@@ -167,3 +167,18 @@ sci_lda %>%
   facet_wrap(~newsgroup) +
   labs(x = "Topic",
        y = "Number of messages where this was the highest percent topic")
+
+######################################################################################
+# 5.Sentiment analysis
+######################################################################################
+newsgroup_sentiments <- words_by_newsgroup %>%
+  inner_join(get_sentiments("afinn"), by = "word") %>%
+  group_by(newsgroup) %>%
+  summarize(score = sum(score * n) / sum(n))
+
+newsgroup_sentiments %>%
+  mutate(newsgroup = reorder(newsgroup, score)) %>%
+  ggplot(aes(newsgroup, score, fill = score > 0)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  ylab("Average sentiment score")
