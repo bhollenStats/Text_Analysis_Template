@@ -169,7 +169,7 @@ sci_lda %>%
        y = "Number of messages where this was the highest percent topic")
 
 ######################################################################################
-# 5.Sentiment analysis
+# 5.a. Sentiment analysis
 ######################################################################################
 newsgroup_sentiments <- words_by_newsgroup %>%
   inner_join(get_sentiments("afinn"), by = "word") %>%
@@ -182,3 +182,44 @@ newsgroup_sentiments %>%
   geom_col(show.legend = FALSE) +
   coord_flip() +
   ylab("Average sentiment score")
+
+######################################################################################
+# 5.b. Sentiment analysis by word
+######################################################################################
+contributions <- usenet_words %>%
+  inner_join(get_sentiments("afinn"), by = "word") %>%
+  group_by(word) %>%
+  summarize(occurences = n(),
+            contribution = sum(score))
+
+contributions %>%
+  top_n(25, abs(contribution)) %>%
+  mutate(word = reorder(word, contribution)) %>%
+  ggplot(aes(word, contribution, fill = contribution > 0)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip()
+  
+######################################################################################
+# 5.c. Sentiment analysis per newsgroup
+######################################################################################
+top_sentiment_words <- words_by_newsgroup %>%
+  inner_join(get_sentiments("afinn"), by="word") %>%
+  mutate(contribution = score * n / sum(n))
+
+target_newsgroups <- c('talk.politics.guns',
+                        'talk.politics.mideast',
+                        'talk.politics.misc',
+                        'alt.atheism',
+                        'talk.religion.misc',
+                        'misc.forsale')
+
+top_sentiment_words %>%
+  filter(newsgroup %in% target_newsgroups) %>%
+  group_by(newsgroup) %>%
+  top_n(10, abs(contribution)) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, contribution)) %>%
+  ggplot(aes(word, contribution, fill = contribution > 0)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~newsgroup, scales = "free_y") +
+  coord_flip()
