@@ -245,3 +245,33 @@ print_message <- function(group, message_id) {
   cat(result$text, sep='\n')
 }
 
+######################################################################################
+# 6. N-gram analysis
+######################################################################################
+usenet_bigrams <- cleaned_text %>%
+  unnest_tokens(bigram, text, token = 'ngrams', n = 2)
+
+usenet_bigram_counts <- usenet_bigrams %>%
+  count(newsgroup, bigram, sort = TRUE) %>%
+  ungroup() %>%
+  separate(bigram, c('word1', 'word2'), sep = ' ')
+
+negate_words <- c('not', 'without', 'no', "can't", "don't", "won't")
+
+usenet_bigram_counts %>%
+  filter(word1 %in% negate_words) %>%
+  count(word1, word2, wt=n, sort = TRUE) %>%
+  inner_join(get_sentiments('afinn'), by=c(word2 = 'word')) %>%
+  mutate(contribution = score * nn) %>%
+  group_by(word1) %>%
+  top_n(10, abs(contribution)) %>%
+  ungroup() %>%
+  mutate(word2 = reorder(paste(word2, word1, sep="_"), contribution)) %>%
+  ggplot(aes(word2, contribution, fill = contribution > 0)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~word1, scales = "free", nrow = 3) +
+  scale_x_discrete(labels = function(x) gsub("_.+$", "", x)) +
+  xlab('Words preceded by a negation') +
+  ylab('Sentiment score * number of occurrences') +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  coord_flip()
