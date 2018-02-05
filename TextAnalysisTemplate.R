@@ -223,3 +223,25 @@ top_sentiment_words %>%
   geom_col(show.legend = FALSE) +
   facet_wrap(~newsgroup, scales = "free_y") +
   coord_flip()
+
+######################################################################################
+# 5.d. Sentiment analysis by message
+######################################################################################
+sentiment_messages <- usenet_words %>%
+  inner_join(get_sentiments('afinn'), by='word') %>%
+  group_by(newsgroup, id) %>%
+  summarize(sentiment = mean(score),
+            words = n()) %>%
+  ungroup() %>%
+  filter(words >= 5)
+
+sentiment_messages %>%
+  arrange(sentiment)
+
+print_message <- function(group, message_id) {
+  result <- cleaned_text %>%
+    filter(newsgroup == group, id == message_id, text != '')
+  
+  cat(result$text, sep='\n')
+}
+
